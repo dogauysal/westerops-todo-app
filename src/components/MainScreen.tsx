@@ -1,4 +1,4 @@
-import { StyleSheet, View, Image } from "react-native"
+import { StyleSheet, View, Image, KeyboardAvoidingView } from "react-native"
 import TodoList from "./TodoList";
 
 const MainScreen = () => {

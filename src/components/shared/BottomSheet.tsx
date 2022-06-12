@@ -1,13 +1,23 @@
-import { Children, useState } from "react";
-import { View, StyleSheet, Animated, TouchableOpacity, Dimensions } from "react-native";
+import { Children, forwardRef, useImperativeHandle, useState } from "react";
+import { View, StyleSheet, Animated, TouchableOpacity, Dimensions, KeyboardAvoidingView, Platform, SafeAreaView } from "react-native";
 
 interface IProps {
-    title: string;
+    children: React.ReactNode
 }
 
-const BottomSheet: React.FC<IProps> = ({
-    title
-}) => {
+const BottomSheet = forwardRef((props: IProps, ref) => {
+
+    useImperativeHandle(ref, () => ({
+        openBottomSheet: () => {
+            setIsVisible(true);
+            handleOpen();
+        },
+        closeBottomSheet: () => {
+            setIsVisible(false);
+            handleClose();
+        }
+    }))
+
     const SCREEN_HEIGHT = Dimensions.get("screen").height;
 
     const [isVisible, setIsVisible] = useState(false);
@@ -42,11 +52,6 @@ const BottomSheet: React.FC<IProps> = ({
         ],
     };
 
-    const openBottomSheet = () => {
-        setIsVisible(true);
-        handleOpen();
-    }
-
     const handleOpen = () => {
         Animated.timing(animation, {
             toValue: 1,
@@ -80,16 +85,19 @@ const BottomSheet: React.FC<IProps> = ({
                     <Animated.View
                         style={[styles.container, backdrop, slideUp]}
                     >
-                        {Children}
+                        <KeyboardAvoidingView >
+                            {props.children}
+                        </KeyboardAvoidingView>
                     </Animated.View>
                 </View>
             }
         </>
     )
-}
+})
 
 const styles = StyleSheet.create({
     sheet: {
+        flex: 1,
         position: "absolute",
         top: 0,
         left: 0,
@@ -100,14 +108,15 @@ const styles = StyleSheet.create({
     },
     container: {
         width: "100%",
+        height: "90%",
         position: "relative",
         top: 0,
         backgroundColor: "#fff",
         borderWidth: 1,
         borderColor: "#C7CDD3",
-        borderTopRightRadius: 50,
-        borderTopLeftRadius: 50,
-        maxHeight: "75%"
+        borderTopRightRadius: 30,
+        borderTopLeftRadius: 30,
+        justifyContent: "flex-end",
     },
     cover: {
         backgroundColor: "rgba(0,0,0,.5)"
