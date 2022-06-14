@@ -1,4 +1,4 @@
-import { Children, forwardRef, useImperativeHandle, useState } from "react";
+import React, { Children, forwardRef, useImperativeHandle, useState } from "react";
 import { View, StyleSheet, Animated, TouchableOpacity, Dimensions, KeyboardAvoidingView, Platform, SafeAreaView } from "react-native";
 
 interface IProps {

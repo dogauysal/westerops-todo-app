@@ -1,3 +1,4 @@
+import React from "react"
 import { StyleSheet, Text, View, Image, TouchableOpacity } from "react-native"
 import BouncyCheckbox from "react-native-bouncy-checkbox"
 import Task from "../models/Task"
