@@ -2,7 +2,8 @@ import { Children, forwardRef, useImperativeHandle, useState } from "react";
 import { View, StyleSheet, Animated, TouchableOpacity, Dimensions, KeyboardAvoidingView, Platform, SafeAreaView } from "react-native";
 
 interface IProps {
-    children: React.ReactNode
+    children: React.ReactNode;
+    heigth: string;
 }
 
 const BottomSheet = forwardRef((props: IProps, ref) => {
@@ -76,14 +77,16 @@ const BottomSheet = forwardRef((props: IProps, ref) => {
     return (
         <>
             {isVisible &&
-                <View style={styles.sheet}>
-                    <Animated.View style={[StyleSheet.absoluteFill, styles.cover]}>
+                <View style={[styles.sheet, styles.cover]}>
+                    <Animated.View style={[StyleSheet.absoluteFill]}>
                         <TouchableOpacity onPress={() => closeBottomSheet()}>
                             <View style={{ height: "100%" }}></View>
                         </TouchableOpacity>
                     </Animated.View>
                     <Animated.View
-                        style={[styles.container, backdrop, slideUp]}
+                        style={[styles.container, backdrop, slideUp, {
+                            height: props.heigth
+                        }]}
                     >
                         <KeyboardAvoidingView >
                             {props.children}
@@ -108,7 +111,6 @@ const styles = StyleSheet.create({
     },
     container: {
         width: "100%",
-        height: "90%",
         position: "relative",
         top: 0,
         backgroundColor: "#fff",
@@ -116,10 +118,9 @@ const styles = StyleSheet.create({
         borderColor: "#C7CDD3",
         borderTopRightRadius: 30,
         borderTopLeftRadius: 30,
-        justifyContent: "flex-end",
     },
     cover: {
-        backgroundColor: "rgba(0,0,0,.5)"
+        backgroundColor: "rgba(0,0,0,.5)",
     },
 })
 

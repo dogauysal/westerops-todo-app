@@ -1,22 +1,60 @@
-import React, { createRef, useRef, useState } from "react";
+import React, { createRef, useEffect, useRef, useState } from "react";
 import { Button, Image, KeyboardAvoidingView, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import BottomSheet from "./shared/BottomSheet";
 import BouncyCheckbox from "react-native-bouncy-checkbox";
 import Task from "../models/Task";
-
+import TaskService from "../services/TaskService";
+import TaskRow from "./TaskRow";
 
 const TodoList = () => {
 
     const actionButtonRef = useRef<BottomSheet>();
     const addTaskFormRef = useRef<BottomSheet>();
 
-    const [description, setDescription] = useState("");
     const [newTask, setNewTask] = useState<Task>(new Task());
+    const [taskList, setTaskList] = useState<Task[]>([]);
+    const [pinnedTask, setPinnedTask] = useState<Task>();
+    const [selectedRowId, setSelectedRowId] = useState(0);
 
 
-    const saveNewTask = () => {
-        console.log(newTask)
+    useEffect(() => {
+
+        TaskService.getAllTasks()
+            .then((tasks) => {
+                const pinnedTask = tasks.find(t => t.IsPinnedOnTop === true);
+
+                if (pinnedTask) {
+                    setPinnedTask(pinnedTask);
+                }
+
+                setTaskList(tasks)
+
+            })
+    }, [])
+
+    useEffect(() => {
+        fetchAllList()
+    }, [pinnedTask])
+
+    useEffect(() => {
+
+    }, [])
+
+    const fetchAllList = async () => {
+        await TaskService.getAllTasks().then((tasks) => setTaskList(tasks))
+    }
+
+    const saveNewTask = async () => {
+        await TaskService.addNewTask(newTask);
+
+        setTaskList([...taskList, newTask])
+
         setNewTask(new Task());
+
+        if (newTask.IsPinnedOnTop) {
+            setPinnedTask(newTask);
+        }
+
         addTaskFormRef.current.closeBottomSheet();
     }
 
@@ -26,6 +64,7 @@ const TodoList = () => {
     }
 
     const onDescriptionKeyPressed = (text: string) => {
+
         let _newTask = { ...newTask };
 
         _newTask.Description = text;
@@ -41,6 +80,54 @@ const TodoList = () => {
         setNewTask(_newTask);
     }
 
+    const onActionButtonClicked = (id: number) => {
+        setSelectedRowId(id);
+        actionButtonRef.current.openBottomSheet()
+    }
+
+    const onPinTopAction = async (id: number) => {
+        let pinnedTask = await TaskService.pinTaskOnTop(id);
+
+        setPinnedTask(pinnedTask)
+
+        actionButtonRef.current.closeBottomSheet()
+    }
+
+    const onDeleteAction = async (id: number) => {
+        await TaskService.deleteTask(id);
+
+        let updatedList = taskList.filter(t => t.Id != id);
+
+        if (pinnedTask?.Id === id) {
+            setPinnedTask(undefined)
+        }
+
+        setTaskList(updatedList)
+
+        actionButtonRef.current.closeBottomSheet()
+    }
+
+    const onUpdateAction = async (id: number) => {
+
+
+        await TaskService.changeDoneStatus(id);
+
+        let index = taskList.findIndex(t => t.Id === id);
+
+        let list = [...taskList];
+        list[index].IsDone = !list[index].IsDone;
+
+        setTaskList([])
+        setTaskList(list)
+
+        if (list[index].IsPinnedOnTop) {
+            setPinnedTask(undefined)
+            setPinnedTask(list[index])
+        }
+
+        actionButtonRef.current.closeBottomSheet()
+    }
+
     return (
         <>
             <View style={styles.container}>
@@ -52,13 +139,28 @@ const TodoList = () => {
                         <Image style={styles.pinImage} source={require('../assets/images/icons/pin_icon.png')} />
                         <Text style={styles.pinText}>Pin on the top</Text>
                     </View>
+                    <View style={styles.pinnedTaskContainer}>
+                        {pinnedTask ?
+                            <TaskRow
+                                key={`pinned_${pinnedTask.Id}`}
+                                task={pinnedTask}
+                                onActionButtonClicked={onActionButtonClicked}
+                            /> : <></>
+                        }
+                    </View>
                 </View>
                 <View style={styles.listSection}>
                     <View
                         style={styles.listContainer}
                     >
                         <ScrollView>
-
+                            {taskList.filter(t => t.IsPinnedOnTop != true).map((task) => (
+                                <TaskRow
+                                    key={task.Id}
+                                    task={task}
+                                    onActionButtonClicked={onActionButtonClicked}
+                                />
+                            ))}
                         </ScrollView>
                     </View>
                     <View style={styles.buttonContainer}>
@@ -82,8 +184,41 @@ const TodoList = () => {
                 </View>
 
             </View>
-            {/* <BottomSheet ref={actionButtonRef}></BottomSheet> */}
-            <BottomSheet ref={addTaskFormRef}>
+            <BottomSheet
+                ref={actionButtonRef}
+                heigth="30%"
+            >
+                <View style={styles.actionButtonBottomSheetContainer}>
+                    <TouchableOpacity
+                        style={styles.actionButtonContainer}
+                        onPress={() => onPinTopAction(selectedRowId)}
+                    >
+                        <View style={styles.actionButtonInnerContainer}>
+                            <Image source={require('../assets/images/icons/pin.png')} />
+                            <Text style={styles.actionButtonText}>Pin on the top</Text>
+                        </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.actionButtonContainer}
+                        onPress={() => onUpdateAction(selectedRowId)}
+                    >
+                        <View style={styles.actionButtonInnerContainer}>
+                            <Image source={require('../assets/images/icons/refresh.png')} />
+                            <Text style={styles.actionButtonText}>Update</Text>
+                        </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.actionButtonContainer}
+                        onPress={() => onDeleteAction(selectedRowId)}
+                    >
+                        <View style={styles.actionButtonInnerContainer}>
+                            <Image source={require('../assets/images/icons/delete.png')} />
+                            <Text style={styles.actionButtonText}>Delete</Text>
+                        </View>
+                    </TouchableOpacity>
+                </View>
+            </BottomSheet>
+            <BottomSheet ref={addTaskFormRef} heigth="90%">
                 <View style={styles.addTaskRefContainer}>
                     <View style={styles.addTaskHeader}>
                         <View style={{ justifyContent: "center" }}>
@@ -97,8 +232,8 @@ const TodoList = () => {
                         <TextInput
                             style={styles.taskDescInput}
                             placeholder="Task description"
-                            value={newTask?.Description}
-                            onChangeText={(text) => onDescriptionKeyPressed(text)}
+                            value={newTask.Description}
+                            onChangeText={onDescriptionKeyPressed}
                         />
                     </View>
                     <View style={styles.pinOnTopSection}>
@@ -167,6 +302,10 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         paddingTop: 25
     },
+    pinnedTaskContainer: {
+        flex: 1,
+        marginHorizontal: 16
+    },
     pinImage: {
         marginLeft: 17,
         marginRight: 10
@@ -222,8 +361,6 @@ const styles = StyleSheet.create({
     },
     addTaskRefContainer: {
         height: "100%",
-        borderWidth: 1,
-        borderColor: "red",
     },
     addTaskHeader: {
         margin: 20,
@@ -242,16 +379,14 @@ const styles = StyleSheet.create({
         justifyContent: "center"
     },
     taskDescContainer: {
-
     },
     taskDescInput: {
         height: 40,
         borderWidth: 1,
         borderRadius: 5,
         borderColor: "#999C9F",
-        padding: 20,
         marginHorizontal: 32,
-        color: "#000"
+        paddingLeft: 5
     },
     pinOnTopSection: {
         marginTop: 30,
@@ -273,6 +408,25 @@ const styles = StyleSheet.create({
         height: 50,
         justifyContent: "center",
         marginHorizontal: 16,
+    },
+    actionButtonBottomSheetContainer: {
+        flexDirection: "column",
+    },
+    actionButtonContainer: {
+        alignItems: "center",
+        paddingVertical: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: "#E5E5E5",
+        width: "100%"
+    },
+    actionButtonInnerContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+
+    },
+    actionButtonText: {
+        fontSize: 18,
+        marginLeft: 15
     }
 })
 
